@@ -13,10 +13,15 @@ let poolConfig: PoolConfig;
 
 if (process.env.DATABASE_URL) {
   // Use DATABASE_URL (preferred for Render/production)
-  // Parse connection string and add SSL
+  // Add pgbouncer parameter for Supabase pooler compatibility
+  const dbUrl = process.env.DATABASE_URL;
+  const connectionString = dbUrl.includes('?')
+    ? `${dbUrl}&pgbouncer=true`
+    : `${dbUrl}?pgbouncer=true`;
+
   poolConfig = {
-    connectionString: process.env.DATABASE_URL,
-    max: 20,
+    connectionString,
+    max: 20, // Lower max for Supabase pooler (default is 15)
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
     ssl: { rejectUnauthorized: false },
