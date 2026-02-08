@@ -1,47 +1,23 @@
-# SaludAlDía Backend - Dockerfile
-FROM node:20-alpine AS builder
+# Use Node.js 22 image
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
-COPY tsconfig.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy source code
-COPY src ./src
-
-# Build TypeScript
-RUN npm run build
-
-# Production stage
-FROM node:20-alpine
-
-WORKDIR /app
-
-# Copy package files and install production dependencies only
-COPY package*.json ./
-RUN npm ci --only=production
-
-# Copy built files from builder
-COPY --from=builder /app/dist ./dist
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Change ownership
-RUN chown -R nodejs:nodejs /app
-USER nodejs
+COPY . .
 
 # Expose port
 EXPOSE 3000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start server
-CMD ["node", "dist/index.js"]
+# Start the application
+CMD ["node", "-r", "tsx/cjs", "src/index.ts"]
